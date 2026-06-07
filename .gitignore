@@ -5,6 +5,7 @@ results/
 *.png
 *.jpg
 *.jpeg
+*.npy
 __pycache__/
 *.pyc
 .DS_Store
