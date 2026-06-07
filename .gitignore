@@ -1,0 +1,10 @@
+examples/
+results/
+*.tif
+*.tiff
+*.png
+*.jpg
+*.jpeg
+__pycache__/
+*.pyc
+.DS_Store
