@@ -142,5 +142,5 @@ plt.suptitle(f"Ridge detection comparison — frame 0\n"
 plt.tight_layout()
 out_path = f"{OUT_DIR}/comparison_frame0.png"
 plt.savefig(out_path, dpi=120, bbox_inches="tight")
-plt.show()
+plt.close()
 print(f"Saved to {out_path}")
