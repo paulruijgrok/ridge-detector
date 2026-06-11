@@ -14,7 +14,7 @@ import matplotlib.patches as mpatches
 import cv2
 
 from ridge_detector import RidgeDetector
-from optimized_detector import OptimizedRidgeDetector, eigh_2x2
+from ridge_detector_fast import OptimizedRidgeDetector, eigh_2x2
 
 STACK_PATH = "/Users/paulruijgrok/Documents/Claude/Projects/ridge detection/examples/unloaded_motility/stacks/032714/slide_2/alpha_0.04mg_ml/_1.tif"
 OUT_DIR    = "/Users/paulruijgrok/Documents/Claude/Projects/ridge detection/results/comparison"

@@ -15,6 +15,21 @@ DTYPE = np.float32
 # Max ridge points per contour direction (2× image diagonal is a safe upper bound)
 MAX_TRACE_POINTS = 12000
 
+# ── Pre-computed float32 kernels for cv2.filter2D ────────────────────────────
+# cv2.filter2D performs correlation (no kernel flip).
+# scipy.ndimage.convolve performs true convolution (flips kernel).
+# For centro-symmetric kernels  (k[i,j] = k[2-i,2-j]):  flip has no effect → same result.
+# For centro-antisymmetric ones (k[i,j] = -k[2-i,2-j]): flip negates → flip the kernel
+#   so that cv2 correlation equals scipy convolution.
+# kernel_r and kernel_c are centro-antisymmetric; the rest are centro-symmetric.
+_CV2_BORDER = cv2.BORDER_REFLECT_101          # scipy mode='mirror' equivalent
+_KR  = kernel_r[::-1, ::-1].astype(DTYPE)    # flipped (antisymmetric)
+_KC  = kernel_c[::-1, ::-1].astype(DTYPE)    # flipped (antisymmetric)
+_KD  = kernel_d.astype(DTYPE)
+_KRR = kernel_rr.astype(DTYPE)
+_KRC = kernel_rc.astype(DTYPE)
+_KCC = kernel_cc.astype(DTYPE)
+
 
 # ── Numba JIT kernel ──────────────────────────────────────────────────────────
 
@@ -295,12 +310,12 @@ class OptimizedRidgeDetector(RidgeDetector):
         max_length = np.ceil(length * 1.2).astype(int)
         grad = np.sqrt(self.grady ** 2 + self.gradx ** 2).astype(DTYPE)
 
-        grad_dr  = convolve(grad, kernel_r,  mode='mirror').astype(DTYPE)
-        grad_dc  = convolve(grad, kernel_c,  mode='mirror').astype(DTYPE)
-        grad_dd  = convolve(grad, kernel_d,  mode='mirror').astype(DTYPE)
-        grad_drr = convolve(grad, kernel_rr, mode='mirror').astype(DTYPE)
-        grad_drc = convolve(grad, kernel_rc, mode='mirror').astype(DTYPE)
-        grad_dcc = convolve(grad, kernel_cc, mode='mirror').astype(DTYPE)
+        grad_dr  = cv2.filter2D(grad, cv2.CV_32F, _KR,  borderType=_CV2_BORDER)
+        grad_dc  = cv2.filter2D(grad, cv2.CV_32F, _KC,  borderType=_CV2_BORDER)
+        grad_dd  = cv2.filter2D(grad, cv2.CV_32F, _KD,  borderType=_CV2_BORDER)
+        grad_drr = cv2.filter2D(grad, cv2.CV_32F, _KRR, borderType=_CV2_BORDER)
+        grad_drc = cv2.filter2D(grad, cv2.CV_32F, _KRC, borderType=_CV2_BORDER)
+        grad_dcc = cv2.filter2D(grad, cv2.CV_32F, _KCC, borderType=_CV2_BORDER)
 
         eigvals, eigvecs = eigh_2x2(
             (DTYPE(2.0) * grad_drr).astype(DTYPE),
@@ -371,12 +386,12 @@ class OptimizedRidgeDetector(RidgeDetector):
 
         # ── Response surface derivatives for sub-pixel interpolation ─────────
         eigval = self.eigval.reshape(height, width).astype(DTYPE)
-        resp_dd  = convolve(eigval, kernel_d,  mode='mirror').astype(DTYPE)
-        resp_dr  = convolve(eigval, kernel_r,  mode='mirror').astype(DTYPE)
-        resp_dc  = convolve(eigval, kernel_c,  mode='mirror').astype(DTYPE)
-        resp_drr = convolve(eigval, kernel_rr, mode='mirror').astype(DTYPE)
-        resp_drc = convolve(eigval, kernel_rc, mode='mirror').astype(DTYPE)
-        resp_dcc = convolve(eigval, kernel_cc, mode='mirror').astype(DTYPE)
+        resp_dd  = cv2.filter2D(eigval, cv2.CV_32F, _KD,  borderType=_CV2_BORDER)
+        resp_dr  = cv2.filter2D(eigval, cv2.CV_32F, _KR,  borderType=_CV2_BORDER)
+        resp_dc  = cv2.filter2D(eigval, cv2.CV_32F, _KC,  borderType=_CV2_BORDER)
+        resp_drr = cv2.filter2D(eigval, cv2.CV_32F, _KRR, borderType=_CV2_BORDER)
+        resp_drc = cv2.filter2D(eigval, cv2.CV_32F, _KRC, borderType=_CV2_BORDER)
+        resp_dcc = cv2.filter2D(eigval, cv2.CV_32F, _KCC, borderType=_CV2_BORDER)
 
         # ── Seed list sorted descending by eigenvalue (= original cross.sort()) ──
         sy, sx = np.where(self.ismax >= 2)

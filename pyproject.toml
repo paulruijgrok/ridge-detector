@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ridge-detector-fast"
+version = "0.1.0"
+description = "Performance-optimized Steger ridge detector (drop-in replacement for ridge-detector)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "numba",
+    "opencv-python",
+    "scipy",
+    "ridge-detector",
+]
+
+[project.optional-dependencies]
+scripts = [
+    "imageio",
+    "tifffile",
+    "matplotlib",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
